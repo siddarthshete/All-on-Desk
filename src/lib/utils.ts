@@ -35,8 +35,8 @@ export function getMobileClass(isMobile: boolean, mobileClass: string, desktopCl
 }
 
 export function formatCityAccess(cities: string[]): string {
-  if (cities.length === 0) {
-    return "No cities assigned";
+  if (!cities || cities.length === 0) {
+    return "All cities (Global admin)";
   }
   
   if (cities.length <= 3) {

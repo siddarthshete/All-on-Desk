@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import Layout from "@/components/Layout";
 import { useApp } from "@/context/AppContext";
@@ -31,7 +30,6 @@ const Index = () => {
   };
 
   // Filter budget documents based on selected city, domain, and search term
-  // and respect city-specific admin access
   const filteredDocuments = budgetDocuments.filter(doc => {
     // Check admin city access first
     if (user?.role === "admin" && !hasAccessToCity(doc.cityId)) {

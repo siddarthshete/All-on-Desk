@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import {
   Select,
@@ -15,6 +15,13 @@ const CitySelector: React.FC = () => {
   const { accessibleCities, selectedCity, setSelectedCity } = useApp();
   const isMobile = useIsMobile();
 
+  // Set the default city to the first accessible city if none selected
+  useEffect(() => {
+    if (!selectedCity && accessibleCities.length > 0) {
+      setSelectedCity(accessibleCities[0]);
+    }
+  }, [accessibleCities, selectedCity, setSelectedCity]);
+
   const handleCityChange = (cityId: string) => {
     const city = accessibleCities.find(c => c.id === cityId) || null;
     setSelectedCity(city);
@@ -24,7 +31,8 @@ const CitySelector: React.FC = () => {
     <div className={isMobile ? "w-full" : "w-[180px]"}>
       <Select
         onValueChange={handleCityChange}
-        defaultValue={selectedCity?.id}
+        value={selectedCity?.id}
+        defaultValue={accessibleCities.length > 0 ? accessibleCities[0].id : undefined}
       >
         <SelectTrigger className="bg-white text-aod-purple-800 flex items-center gap-2">
           <MapPin size={16} className="text-aod-purple-600" />

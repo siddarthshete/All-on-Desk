@@ -54,14 +54,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const accessibleCities = React.useMemo(() => {
     if (!user) return [];
     
-    // Regular users can see all cities
-    if (user.role !== "admin") return cities;
-    
     // Global admin can see all cities
-    if (!user.assignedCityIds || user.assignedCityIds.length === 0) return cities;
+    if (user.role === "admin" && (!user.assignedCityIds || user.assignedCityIds.length === 0)) {
+      return cities;
+    }
     
     // City-specific admin can only see assigned cities
-    return cities.filter(city => user.assignedCityIds?.includes(city.id));
+    if (user.role === "admin" && user.assignedCityIds && user.assignedCityIds.length > 0) {
+      return cities.filter(city => user.assignedCityIds?.includes(city.id));
+    }
+    
+    // Regular users can see all cities
+    return cities;
   }, [user, cities]);
 
   // Check if user has access to a specific city
