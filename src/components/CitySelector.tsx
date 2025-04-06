@@ -8,9 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MapPin } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CitySelector: React.FC = () => {
   const { cities, selectedCity, setSelectedCity } = useApp();
+  const isMobile = useIsMobile();
 
   const handleCityChange = (cityId: string) => {
     const city = cities.find(c => c.id === cityId) || null;
@@ -18,12 +21,13 @@ const CitySelector: React.FC = () => {
   };
 
   return (
-    <div className="w-[180px]">
+    <div className={isMobile ? "w-full" : "w-[180px]"}>
       <Select
         onValueChange={handleCityChange}
         defaultValue={selectedCity?.id}
       >
-        <SelectTrigger className="bg-white text-aod-purple-800">
+        <SelectTrigger className="bg-white text-aod-purple-800 flex items-center gap-2">
+          <MapPin size={16} className="text-aod-purple-600" />
           <SelectValue placeholder="Select a city" />
         </SelectTrigger>
         <SelectContent>

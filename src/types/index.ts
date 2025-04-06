@@ -43,3 +43,7 @@ export interface Query {
   createdAt: string;
   response?: string;
 }
+
+export interface SliderRefType {
+  current: HTMLDivElement | null;
+}

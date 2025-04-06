@@ -1,16 +1,34 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Layout from "@/components/Layout";
 import { useApp } from "@/context/AppContext";
 import DomainSelector from "@/components/DomainSelector";
 import BudgetCard from "@/components/BudgetCard";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Slider } from "@/components/ui/slider";
+import { Domain } from "@/types";
 
 const Index = () => {
-  const { budgetDocuments, domains, selectedCity, selectedDomain } = useApp();
+  const { budgetDocuments, domains, selectedCity, selectedDomain, setSelectedDomain } = useApp();
   const [searchTerm, setSearchTerm] = React.useState("");
+  const isMobile = useIsMobile();
+  const sliderRef = useRef<HTMLDivElement>(null);
+  
+  // Sliding domains feature
+  const scrollLeft = () => {
+    if (sliderRef.current) {
+      sliderRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+    }
+  };
+  
+  const scrollRight = () => {
+    if (sliderRef.current) {
+      sliderRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+    }
+  };
 
   // Filter budget documents based on selected city, domain, and search term
   const filteredDocuments = budgetDocuments.filter(doc => {
@@ -34,14 +52,18 @@ const Index = () => {
     return domains.find(d => d.id === domainId) || domains[0];
   };
 
+  const handleDomainClick = (domain: Domain | null) => {
+    setSelectedDomain(domain);
+  };
+
   return (
     <Layout>
       <section className="mb-8 mt-4">
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-aod-purple-800 to-aod-purple-500 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-aod-purple-800 to-aod-purple-500 bg-clip-text text-transparent">
             Government Budget Transparency
           </h1>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+          <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto">
             Explore government contract budgets across various domains and raise queries for clarification.
           </p>
         </div>
@@ -66,7 +88,71 @@ const Index = () => {
             </Button>
           </div>
           
-          <DomainSelector />
+          {/* Sliding domain bar */}
+          <div className="relative mb-4">
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 rounded-full bg-aod-purple-100 text-aod-purple-800 hover:bg-aod-purple-200"
+                onClick={scrollLeft}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <div 
+              ref={sliderRef}
+              className="flex overflow-x-auto py-2 px-8 gap-3 scrollbar-hide scroll-smooth"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              <div 
+                key="all" 
+                onClick={() => handleDomainClick(null)}
+                className={`flex-shrink-0 cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors
+                  ${!selectedDomain 
+                    ? 'bg-aod-purple-600 text-white' 
+                    : 'bg-aod-purple-100 text-aod-purple-800 hover:bg-aod-purple-200'
+                  }`}
+              >
+                All Domains
+              </div>
+              
+              {domains.map(domain => (
+                <div
+                  key={domain.id}
+                  onClick={() => handleDomainClick(domain)}
+                  className={`flex-shrink-0 cursor-pointer px-4 py-2 rounded-full text-sm font-medium transition-colors
+                    ${selectedDomain?.id === domain.id 
+                      ? 'bg-aod-purple-600 text-white' 
+                      : 'bg-aod-purple-100 text-aod-purple-800 hover:bg-aod-purple-200'
+                    }`}
+                  style={{
+                    backgroundColor: selectedDomain?.id === domain.id ? domain.color : 'rgb(243 232 255)',
+                    color: selectedDomain?.id === domain.id ? 'white' : 'rgb(107 33 168)'
+                  }}
+                >
+                  {domain.name}
+                </div>
+              ))}
+            </div>
+            
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 rounded-full bg-aod-purple-100 text-aod-purple-800 hover:bg-aod-purple-200"
+                onClick={scrollRight}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Regular domain selector (hidden on mobile) */}
+          <div className={isMobile ? "hidden" : ""}>
+            <DomainSelector />
+          </div>
         </div>
 
         {/* City selection prompt if no city selected */}

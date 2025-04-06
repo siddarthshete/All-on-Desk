@@ -1,4 +1,3 @@
-
 import { BudgetDocument, City, Domain, Query, User } from "@/types";
 
 export const mockUsers: User[] = [
@@ -17,11 +16,12 @@ export const mockUsers: User[] = [
 ];
 
 export const mockCities: City[] = [
-  { id: "1", name: "New York", state: "NY" },
-  { id: "2", name: "Los Angeles", state: "CA" },
-  { id: "3", name: "Chicago", state: "IL" },
-  { id: "4", name: "Houston", state: "TX" },
-  { id: "5", name: "Phoenix", state: "AZ" }
+  { id: "1", name: "Mumbai", state: "MH" },
+  { id: "2", name: "Pune", state: "MH" },
+  { id: "3", name: "Nashik", state: "MH" },
+  { id: "4", name: "Nagpur", state: "MH" },
+  { id: "5", name: "Ahilyanagar", state: "MH" },
+  { id: "6", name: "Ch.Sambhajinagar", state: "MH" }
 ];
 
 export const mockDomains: Domain[] = [

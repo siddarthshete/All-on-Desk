@@ -29,3 +29,7 @@ export function getInitials(name: string): string {
     .join('')
     .toUpperCase();
 }
+
+export function getMobileClass(isMobile: boolean, mobileClass: string, desktopClass: string): string {
+  return isMobile ? mobileClass : desktopClass;
+}
