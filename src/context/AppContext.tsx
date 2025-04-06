@@ -21,6 +21,8 @@ interface AppContextProps {
   updateBudgetDocument: (id: string, document: Partial<BudgetDocument>) => void;
   deleteBudgetDocument: (id: string) => void;
   respondToQuery: (id: string, response: string) => void;
+  hasAccessToCity: (cityId: string) => boolean;
+  accessibleCities: City[];
 }
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);
@@ -47,6 +49,34 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }
     }
   }, []);
+
+  // Calculate accessible cities based on user permissions
+  const accessibleCities = React.useMemo(() => {
+    if (!user) return [];
+    
+    // Regular users can see all cities
+    if (user.role !== "admin") return cities;
+    
+    // Global admin can see all cities
+    if (!user.assignedCityIds || user.assignedCityIds.length === 0) return cities;
+    
+    // City-specific admin can only see assigned cities
+    return cities.filter(city => user.assignedCityIds?.includes(city.id));
+  }, [user, cities]);
+
+  // Check if user has access to a specific city
+  const hasAccessToCity = (cityId: string): boolean => {
+    if (!user) return false;
+    
+    // Regular users can access all cities
+    if (user.role !== "admin") return true;
+    
+    // Global admin can access all cities
+    if (!user.assignedCityIds || user.assignedCityIds.length === 0) return true;
+    
+    // City-specific admin can only access assigned cities
+    return user.assignedCityIds.includes(cityId);
+  };
 
   const login = async (email: string, password: string) => {
     // In a real app, this would be an API call to a backend service
@@ -114,6 +144,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // Check if admin has access to the city
+    if (!hasAccessToCity(document.cityId)) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have access to add documents for this city.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const now = new Date().toISOString();
     const newDocument: BudgetDocument = {
       id: Date.now().toString(),
@@ -134,6 +174,37 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       toast({
         title: "Permission Denied",
         description: "Only administrators can update budget documents.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Get the existing document to check its city
+    const existingDoc = budgetDocuments.find(doc => doc.id === id);
+    if (!existingDoc) {
+      toast({
+        title: "Document Not Found",
+        description: "The budget document you're trying to update doesn't exist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if admin has access to the city of the existing document
+    if (!hasAccessToCity(existingDoc.cityId)) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have access to update documents for this city.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If the city is being changed, check access to the new city as well
+    if (document.cityId && document.cityId !== existingDoc.cityId && !hasAccessToCity(document.cityId)) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have access to move documents to this city.",
         variant: "destructive",
       });
       return;
@@ -162,6 +233,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // Get the document to check its city
+    const document = budgetDocuments.find(doc => doc.id === id);
+    if (!document) {
+      toast({
+        title: "Document Not Found",
+        description: "The budget document you're trying to delete doesn't exist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if admin has access to the city
+    if (!hasAccessToCity(document.cityId)) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have access to delete documents for this city.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setBudgetDocuments(prev => prev.filter(doc => doc.id !== id));
     toast({
       title: "Document Deleted",
@@ -179,11 +271,43 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // Get the query and associated document
+    const query = queries.find(q => q.id === id);
+    if (!query) {
+      toast({
+        title: "Query Not Found",
+        description: "The query you're trying to respond to doesn't exist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Get the document related to the query
+    const document = budgetDocuments.find(doc => doc.id === query.budgetDocumentId);
+    if (!document) {
+      toast({
+        title: "Related Document Not Found",
+        description: "The document related to this query doesn't exist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if admin has access to the city of the document
+    if (!hasAccessToCity(document.cityId)) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have access to respond to queries for this city.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setQueries(prev => 
-      prev.map(query => 
-        query.id === id 
-          ? { ...query, response, status: "resolved" } 
-          : query
+      prev.map(q => 
+        q.id === id 
+          ? { ...q, response, status: "resolved" } 
+          : q
       )
     );
     toast({
@@ -211,6 +335,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         updateBudgetDocument,
         deleteBudgetDocument,
         respondToQuery,
+        hasAccessToCity,
+        accessibleCities,
       }}
     >
       {children}

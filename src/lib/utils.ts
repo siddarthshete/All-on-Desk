@@ -33,3 +33,15 @@ export function getInitials(name: string): string {
 export function getMobileClass(isMobile: boolean, mobileClass: string, desktopClass: string): string {
   return isMobile ? mobileClass : desktopClass;
 }
+
+export function formatCityAccess(cities: string[]): string {
+  if (cities.length === 0) {
+    return "No cities assigned";
+  }
+  
+  if (cities.length <= 3) {
+    return cities.join(', ');
+  }
+  
+  return `${cities.slice(0, 2).join(', ')} and ${cities.length - 2} more`;
+}

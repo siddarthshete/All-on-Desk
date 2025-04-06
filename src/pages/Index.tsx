@@ -12,7 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { Domain } from "@/types";
 
 const Index = () => {
-  const { budgetDocuments, domains, selectedCity, selectedDomain, setSelectedDomain } = useApp();
+  const { budgetDocuments, domains, selectedCity, selectedDomain, setSelectedDomain, user, hasAccessToCity, accessibleCities } = useApp();
   const [searchTerm, setSearchTerm] = React.useState("");
   const isMobile = useIsMobile();
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -31,7 +31,13 @@ const Index = () => {
   };
 
   // Filter budget documents based on selected city, domain, and search term
+  // and respect city-specific admin access
   const filteredDocuments = budgetDocuments.filter(doc => {
+    // Check admin city access first
+    if (user?.role === "admin" && !hasAccessToCity(doc.cityId)) {
+      return false;
+    }
+    
     // Filter by city
     if (selectedCity && doc.cityId !== selectedCity.id) return false;
     
@@ -155,6 +161,15 @@ const Index = () => {
           </div>
         </div>
 
+        {/* Admin city access restriction notice */}
+        {user?.role === "admin" && user.assignedCityIds && user.assignedCityIds.length > 0 && (
+          <div className="text-center p-4 mb-4 bg-aod-purple-100 rounded-lg border border-aod-purple-200">
+            <p className="text-aod-purple-800">
+              You have access to: {accessibleCities.map(c => c.name).join(', ')}
+            </p>
+          </div>
+        )}
+
         {/* City selection prompt if no city selected */}
         {!selectedCity && (
           <div className="text-center p-8 mb-8 bg-aod-purple-100 rounded-lg border border-aod-purple-200">
@@ -172,7 +187,12 @@ const Index = () => {
               Budget Documents for {selectedCity.name}, {selectedCity.state}
             </h2>
             
-            {filteredDocuments.length === 0 ? (
+            {/* Show message if admin doesn't have access to this city */}
+            {user?.role === "admin" && !hasAccessToCity(selectedCity.id) ? (
+              <div className="text-center p-8 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="text-gray-700">You don't have access to view or manage budgets for {selectedCity.name}.</p>
+              </div>
+            ) : filteredDocuments.length === 0 ? (
               <div className="text-center p-8 bg-gray-50 rounded-lg border">
                 <p className="text-gray-600">No budget documents found with the current filters.</p>
               </div>

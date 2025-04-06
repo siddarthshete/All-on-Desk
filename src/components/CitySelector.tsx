@@ -12,11 +12,11 @@ import { MapPin } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const CitySelector: React.FC = () => {
-  const { cities, selectedCity, setSelectedCity } = useApp();
+  const { accessibleCities, selectedCity, setSelectedCity } = useApp();
   const isMobile = useIsMobile();
 
   const handleCityChange = (cityId: string) => {
-    const city = cities.find(c => c.id === cityId) || null;
+    const city = accessibleCities.find(c => c.id === cityId) || null;
     setSelectedCity(city);
   };
 
@@ -31,7 +31,7 @@ const CitySelector: React.FC = () => {
           <SelectValue placeholder="Select a city" />
         </SelectTrigger>
         <SelectContent>
-          {cities.map((city) => (
+          {accessibleCities.map((city) => (
             <SelectItem key={city.id} value={city.id}>
               {city.name}, {city.state}
             </SelectItem>

@@ -22,7 +22,7 @@ const Login = () => {
     
     try {
       await login(email, password);
-      navigate("/");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Login failed:", error);
     } finally {
@@ -75,7 +75,8 @@ const Login = () => {
               
               <div className="text-sm text-gray-500">
                 For demo purposes, use:<br />
-                Admin: admin@allondesk.gov / password<br />
+                Global Admin: admin@allondesk.gov / password<br />
+                City Admin: mumbai.admin@allondesk.gov / password<br />
                 User: user@example.com / password
               </div>
             </CardContent>

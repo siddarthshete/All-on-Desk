@@ -4,6 +4,7 @@ export interface User {
   email: string;
   name: string;
   role: "admin" | "user";
+  assignedCityIds?: string[]; // New field for city-specific admin access
 }
 
 export interface City {
