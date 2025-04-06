@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { useApp } from "@/context/AppContext";
@@ -14,7 +14,7 @@ import BudgetCard from "@/components/BudgetCard";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, budgetDocuments, domains, queries, accessibleCities, hasAccessToCity } = useApp();
+  const { user, budgetDocuments, domains, queries } = useApp();
   const [activeDomain, setActiveDomain] = useState<string | null>(null);
   
   // If user is not logged in, redirect to login
@@ -32,20 +32,9 @@ const Dashboard = () => {
     );
   }
   
-  // Filter documents based on user's city access
-  const accessibleDocuments = budgetDocuments.filter(doc => {
-    if (user.role === "admin") {
-      return hasAccessToCity(doc.cityId);
-    }
-    return true; // Regular users can see all documents
-  });
-  
-  // Find queries relevant to the user
+  // Find documents and queries relevant to the user
   const userQueries = user.role === "admin" 
-    ? queries.filter(q => {
-        const document = budgetDocuments.find(doc => doc.id === q.budgetDocumentId);
-        return document && hasAccessToCity(document.cityId);
-      }) 
+    ? queries 
     : queries.filter(q => q.userId === user.id);
   
   const pendingQueries = userQueries.filter(q => q.status === "pending");
@@ -62,8 +51,8 @@ const Dashboard = () => {
   
   // Filter documents by domain
   const filteredDocuments = activeDomain
-    ? accessibleDocuments.filter(doc => doc.domainId === activeDomain)
-    : accessibleDocuments;
+    ? budgetDocuments.filter(doc => doc.domainId === activeDomain)
+    : budgetDocuments;
 
   return (
     <Layout>
@@ -72,11 +61,6 @@ const Dashboard = () => {
           <div>
             <h1 className="text-3xl font-bold">Dashboard</h1>
             <p className="text-gray-600">Welcome back, {user.name}!</p>
-            {user.role === "admin" && user.assignedCityIds && user.assignedCityIds.length > 0 && (
-              <p className="text-sm text-aod-purple-600 mt-1">
-                You have access to: {accessibleCities.map(c => c.name).join(', ')}
-              </p>
-            )}
           </div>
           
           {user.role === "admin" && (
@@ -99,7 +83,7 @@ const Dashboard = () => {
             <CardContent>
               <div className="flex items-center">
                 <FileText className="h-8 w-8 text-aod-purple-600 mr-3" />
-                <span className="text-3xl font-bold">{accessibleDocuments.length}</span>
+                <span className="text-3xl font-bold">{budgetDocuments.length}</span>
               </div>
             </CardContent>
           </Card>
@@ -173,29 +157,15 @@ const Dashboard = () => {
                 ))}
               </div>
               
-              {accessibleCities.length === 0 && user.role === "admin" ? (
-                <div className="text-center p-8 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <p className="text-gray-600">
-                    You don't have access to any cities. Please contact the super administrator.
-                  </p>
-                </div>
-              ) : filteredDocuments.length === 0 ? (
-                <div className="text-center p-8 bg-gray-50 rounded-lg border">
-                  <p className="text-gray-600">
-                    No budget documents found matching the current filters.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredDocuments.map((document) => (
-                    <BudgetCard 
-                      key={document.id} 
-                      document={document} 
-                      domain={getDocumentDomain(document.domainId)} 
-                    />
-                  ))}
-                </div>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredDocuments.map((document) => (
+                  <BudgetCard 
+                    key={document.id} 
+                    document={document} 
+                    domain={getDocumentDomain(document.domainId)} 
+                  />
+                ))}
+              </div>
             </div>
           </TabsContent>
           
@@ -207,7 +177,7 @@ const Dashboard = () => {
                 <div className="text-center p-8 bg-gray-50 rounded-lg border">
                   <p className="text-gray-600">
                     {user.role === "admin" 
-                      ? "There are no queries in the system yet for your assigned cities." 
+                      ? "There are no queries in the system yet." 
                       : "You haven't submitted any queries yet."}
                   </p>
                 </div>

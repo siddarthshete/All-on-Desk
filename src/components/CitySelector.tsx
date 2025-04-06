@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useApp } from "@/context/AppContext";
 import {
   Select,
@@ -12,18 +12,11 @@ import { MapPin } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const CitySelector: React.FC = () => {
-  const { accessibleCities, selectedCity, setSelectedCity } = useApp();
+  const { cities, selectedCity, setSelectedCity } = useApp();
   const isMobile = useIsMobile();
 
-  // Set the default city to the first accessible city if none selected
-  useEffect(() => {
-    if (!selectedCity && accessibleCities.length > 0) {
-      setSelectedCity(accessibleCities[0]);
-    }
-  }, [accessibleCities, selectedCity, setSelectedCity]);
-
   const handleCityChange = (cityId: string) => {
-    const city = accessibleCities.find(c => c.id === cityId) || null;
+    const city = cities.find(c => c.id === cityId) || null;
     setSelectedCity(city);
   };
 
@@ -31,15 +24,14 @@ const CitySelector: React.FC = () => {
     <div className={isMobile ? "w-full" : "w-[180px]"}>
       <Select
         onValueChange={handleCityChange}
-        value={selectedCity?.id}
-        defaultValue={accessibleCities.length > 0 ? accessibleCities[0].id : undefined}
+        defaultValue={selectedCity?.id}
       >
         <SelectTrigger className="bg-white text-aod-purple-800 flex items-center gap-2">
           <MapPin size={16} className="text-aod-purple-600" />
           <SelectValue placeholder="Select a city" />
         </SelectTrigger>
         <SelectContent>
-          {accessibleCities.map((city) => (
+          {cities.map((city) => (
             <SelectItem key={city.id} value={city.id}>
               {city.name}, {city.state}
             </SelectItem>
