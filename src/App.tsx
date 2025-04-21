@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -17,8 +18,6 @@ import RaiseQuery from "./pages/RaiseQuery";
 import AddDocument from "./pages/AddDocument";
 import EditDocument from "./pages/EditDocument";
 import NotFound from "./pages/NotFound";
-import { AuthProvider } from "@/context/AuthContext";
-import Auth from "@/pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -41,33 +40,31 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppProvider>
-          <TooltipProvider>
-            {showSplash ? (
-              <SplashScreen onComplete={handleSplashComplete} />
-            ) : (
-              <>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Auth />} />
-                    {/* Remove separate Login/Register pages (use Auth instead) */}
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/documents/:id" element={<DocumentDetail />} />
-                    <Route path="/raise-query/:id" element={<RaiseQuery />} />
-                    <Route path="/add-document" element={<AddDocument />} />
-                    <Route path="/edit-document/:id" element={<EditDocument />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </>
-            )}
-          </TooltipProvider>
-        </AppProvider>
-      </AuthProvider>
+      <AppProvider>
+        <TooltipProvider>
+          {showSplash ? (
+            <SplashScreen onComplete={handleSplashComplete} />
+          ) : (
+            <>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/documents/:id" element={<DocumentDetail />} />
+                  <Route path="/raise-query/:id" element={<RaiseQuery />} />
+                  <Route path="/add-document" element={<AddDocument />} />
+                  <Route path="/edit-document/:id" element={<EditDocument />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </>
+          )}
+        </TooltipProvider>
+      </AppProvider>
     </QueryClientProvider>
   );
 };
