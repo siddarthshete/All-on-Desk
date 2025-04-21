@@ -1,6 +1,5 @@
-
 import React from "react";
-import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { UserCircle, LogOut, Menu } from "lucide-react";
 import CitySelector from "./CitySelector";
@@ -13,7 +12,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, logout } = useApp();
+  const { user, logout, profile } = useAuth();
   const isMobile = useIsMobile();
 
   return (
@@ -29,7 +28,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             />
             <span className="text-2xl font-bold hidden sm:inline">All On Desk</span>
           </Link>
-          
           {isMobile ? (
             <div className="flex items-center gap-2">
               <CitySelector />
@@ -53,7 +51,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         <>
                           <Link to="/dashboard" className="flex items-center gap-2 text-white hover:text-aod-purple-200 py-2">
                             <UserCircle size={20} />
-                            <span>{user.name}</span>
+                            <span>{profile?.name ?? user.email}</span>
                           </Link>
                           <Button 
                             variant="outline" 
@@ -93,15 +91,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           ) : (
             <div className="flex items-center gap-4">
-              {/* City Selector */}
               <CitySelector />
-              
-              {/* User menu / Auth buttons */}
               {user ? (
                 <div className="flex items-center gap-2">
                   <Link to="/dashboard" className="flex items-center gap-1 text-white hover:text-aod-purple-200">
                     <UserCircle size={20} />
-                    <span>{user.name}</span>
+                    <span>{profile?.name ?? user.email}</span>
                   </Link>
                   <Button 
                     variant="ghost" 
