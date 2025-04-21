@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth: React.FC = () => {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState(""); // NEW for registration
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { login, signup, user } = useAuth();
@@ -32,9 +34,27 @@ const Auth: React.FC = () => {
         await login(email, password);
         navigate("/dashboard");
       } else {
+        // Register user via signup
         await signup(email, password);
-        setMode("login");
-        setError("Registration successful! Please log in.");
+        // Get the latest session/user after successful signup
+        const {
+          data: { user: newUser },
+        } = await supabase.auth.getUser();
+        if (newUser) {
+          // Insert profile with the user's name
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .update({ name })
+            .eq("id", newUser.id);
+          if (profileError) {
+            setError("Registered, but failed to save profile name.");
+          } else {
+            setMode("login");
+            setError("Registration successful! Please log in.");
+          }
+        } else {
+          setError("Registration successful, but user not found.");
+        }
       }
     } catch (err: any) {
       setError(err.message);
@@ -49,6 +69,20 @@ const Auth: React.FC = () => {
         <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
           <h2 className="text-2xl font-bold mb-4 text-center">{mode === "login" ? "Log In" : "Register"}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === "register" && (
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Your full name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+            )}
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -104,3 +138,4 @@ const Auth: React.FC = () => {
 };
 
 export default Auth;
+
