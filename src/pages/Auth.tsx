@@ -1,273 +1,96 @@
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-const Auth = () => {
+const Auth: React.FC = () => {
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-
-  const [registerData, setRegisterData] = useState({
-    name: "",
-    dob: "",
-    contact: "",
-    location: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  const { login, signup, loading } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     setError(null);
     try {
-      await login(loginEmail, loginPassword);
-      navigate("/");
-    } catch (err: any) {
-      // If user not found, switch to register mode
-      if (err?.message?.toLowerCase().includes("invalid login credentials")) {
-        setMode("register");
-        setRegisterData((prev) => ({
-          ...prev,
-          email: loginEmail,
-        }));
-        setError("User not found or wrong password. Please register.");
+      if (mode === "login") {
+        await login(email, password);
       } else {
-        setError(err?.message || "Login failed");
+        await signup(email, password);
+        setMode("login");
       }
-    }
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (registerData.password !== registerData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-    if (
-      !registerData.name ||
-      !registerData.dob ||
-      !registerData.contact ||
-      !registerData.location ||
-      !registerData.email ||
-      !registerData.password
-    ) {
-      setError("Please fill in all fields");
-      return;
-    }
-    try {
-      await signup({
-        name: registerData.name,
-        dob: registerData.dob,
-        contact: registerData.contact,
-        location: registerData.location,
-        email: registerData.email,
-        password: registerData.password,
-      });
-      navigate("/");
     } catch (err: any) {
-      setError(err?.message || "Registration failed");
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[70vh]">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">
-          {mode === "login" ? "Login" : "Register"}
-        </h2>
-        {error && (
-          <div className="mb-4 text-red-600 text-center font-semibold">
-            {error}
+    <Layout>
+      <div className="flex justify-center items-center py-12">
+        <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+          <h2 className="text-2xl font-bold mb-4 text-center">{mode === "login" ? "Log In" : "Register"}</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+            {error && (
+              <div className="text-red-600 text-sm text-center">{error}</div>
+            )}
+            <Button type="submit" className="w-full bg-aod-purple-600 hover:bg-aod-purple-700" disabled={loading}>
+              {loading ? (mode === "login" ? "Logging in..." : "Registering...") : (mode === "login" ? "Log In" : "Register")}
+            </Button>
+          </form>
+          <div className="mt-6 text-center">
+            {mode === "login" ? (
+              <span>
+                Don't have an account?{" "}
+                <button className="text-aod-purple-600 hover:underline" onClick={() => setMode("register")}>
+                  Register
+                </button>
+              </span>
+            ) : (
+              <span>
+                Already have an account?{" "}
+                <button className="text-aod-purple-600 hover:underline" onClick={() => setMode("login")}>
+                  Log in
+                </button>
+              </span>
+            )}
           </div>
-        )}
-        {mode === "login" ? (
-          <form className="space-y-4" onSubmit={handleLogin}>
-            <div>
-              <label htmlFor="login-email" className="block mb-1 text-sm font-medium">
-                Email
-              </label>
-              <input
-                id="login-email"
-                type="email"
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                required
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                autoComplete="email"
-              />
-            </div>
-            <div>
-              <label htmlFor="login-password" className="block mb-1 text-sm font-medium">
-                Password
-              </label>
-              <input
-                id="login-password"
-                type="password"
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                required
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                autoComplete="current-password"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Logging in..." : "Login"}
-            </Button>
-            <p className="mt-4 text-sm text-center">
-              No account?{" "}
-              <button
-                className="text-aod-purple-600 hover:underline"
-                type="button"
-                onClick={() => setMode("register")}
-              >
-                Register here
-              </button>
-            </p>
-          </form>
-        ) : (
-          <form className="space-y-3" onSubmit={handleRegister}>
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Name
-              </label>
-              <input
-                type="text"
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                value={registerData.name}
-                onChange={(e) =>
-                  setRegisterData((prev) => ({ ...prev, name: e.target.value }))
-                }
-                required
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Date of Birth
-              </label>
-              <input
-                type="date"
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                value={registerData.dob}
-                onChange={(e) =>
-                  setRegisterData((prev) => ({ ...prev, dob: e.target.value }))
-                }
-                required
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Contact
-              </label>
-              <input
-                type="text"
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                value={registerData.contact}
-                onChange={(e) =>
-                  setRegisterData((prev) => ({
-                    ...prev,
-                    contact: e.target.value,
-                  }))
-                }
-                required
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Location
-              </label>
-              <input
-                type="text"
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                value={registerData.location}
-                onChange={(e) =>
-                  setRegisterData((prev) => ({
-                    ...prev,
-                    location: e.target.value,
-                  }))
-                }
-                required
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Email
-              </label>
-              <input
-                type="email"
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                value={registerData.email}
-                onChange={(e) =>
-                  setRegisterData((prev) => ({
-                    ...prev,
-                    email: e.target.value,
-                  }))
-                }
-                required
-                autoComplete="email"
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Password
-              </label>
-              <input
-                type="password"
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                value={registerData.password}
-                onChange={(e) =>
-                  setRegisterData((prev) => ({
-                    ...prev,
-                    password: e.target.value,
-                  }))
-                }
-                required
-                autoComplete="new-password"
-              />
-            </div>
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                className="w-full border border-gray-300 rounded px-3 py-2"
-                value={registerData.confirmPassword}
-                onChange={(e) =>
-                  setRegisterData((prev) => ({
-                    ...prev,
-                    confirmPassword: e.target.value,
-                  }))
-                }
-                required
-                autoComplete="new-password"
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Registering..." : "Register"}
-            </Button>
-            <p className="mt-4 text-sm text-center">
-              Already have an account?{" "}
-              <button
-                className="text-aod-purple-600 hover:underline"
-                type="button"
-                onClick={() => setMode("login")}
-              >
-                Login here
-              </button>
-            </p>
-          </form>
-        )}
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 
