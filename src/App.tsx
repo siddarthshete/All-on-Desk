@@ -1,10 +1,12 @@
+
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
+import { AuthProvider } from "@/context/AuthContext";
 import SplashScreen from "@/components/SplashScreen";
 
 // Pages
@@ -17,7 +19,6 @@ import RaiseQuery from "./pages/RaiseQuery";
 import AddDocument from "./pages/AddDocument";
 import EditDocument from "./pages/EditDocument";
 import NotFound from "./pages/NotFound";
-import { AuthProvider } from "@/context/AuthContext";
 import Auth from "@/pages/Auth";
 
 const queryClient = new QueryClient();
@@ -41,20 +42,21 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppProvider>
-          <TooltipProvider>
-            {showSplash ? (
-              <SplashScreen onComplete={handleSplashComplete} />
-            ) : (
-              <>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppProvider>
+            <TooltipProvider>
+              {showSplash ? (
+                <SplashScreen onComplete={handleSplashComplete} />
+              ) : (
+                <>
+                  <Toaster />
+                  <Sonner />
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
-                    {/* Remove separate Login/Register pages (use Auth instead) */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/documents/:id" element={<DocumentDetail />} />
                     <Route path="/raise-query/:id" element={<RaiseQuery />} />
@@ -62,12 +64,12 @@ const App = () => {
                     <Route path="/edit-document/:id" element={<EditDocument />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
-                </BrowserRouter>
-              </>
-            )}
-          </TooltipProvider>
-        </AppProvider>
-      </AuthProvider>
+                </>
+              )}
+            </TooltipProvider>
+          </AppProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 };

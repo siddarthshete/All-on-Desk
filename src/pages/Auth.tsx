@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,15 @@ const Auth: React.FC = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { login, signup } = useAuth();
+  const { login, signup, user } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,9 +30,11 @@ const Auth: React.FC = () => {
     try {
       if (mode === "login") {
         await login(email, password);
+        navigate("/dashboard");
       } else {
         await signup(email, password);
         setMode("login");
+        setError("Registration successful! Please log in.");
       }
     } catch (err: any) {
       setError(err.message);
