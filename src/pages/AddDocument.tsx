@@ -22,11 +22,10 @@ const AddDocument = () => {
   const [year, setYear] = useState(new Date().getFullYear().toString());
   const [quarter, setQuarter] = useState("Q1");
   const [amount, setAmount] = useState("");
-  const [documentUrl, setDocumentUrl] = useState("/documents/placeholder.pdf");
+  const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // If user is not admin, redirect to dashboard
-  if (!user || user.role !== "admin") {
+  if (!user) {
     return (
       <Layout>
         <div className="text-center p-12">
@@ -40,11 +39,11 @@ const AddDocument = () => {
     );
   }
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    addBudgetDocument({
+
+    await addBudgetDocument({
       title,
       description,
       cityId,
@@ -52,10 +51,10 @@ const AddDocument = () => {
       year: parseInt(year),
       quarter,
       amount: parseFloat(amount),
-      documentUrl,
-    });
-    
-    // Navigate back to the dashboard
+      documentUrl: "", // Will be set after file upload
+    }, file || undefined);
+
+    setIsSubmitting(false);
     setTimeout(() => {
       navigate("/dashboard");
     }, 1000);
@@ -198,19 +197,14 @@ const AddDocument = () => {
                 <Label htmlFor="document">Budget Document</Label>
                 <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center">
                   <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600 mb-1">Upload PDF document</p>
-                  <p className="text-xs text-gray-500">
-                    (For demo purposes, file upload is simulated)
-                  </p>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-4"
-                    onClick={() => setDocumentUrl("/documents/uploaded.pdf")}
-                  >
-                    Choose File
-                  </Button>
+                  <input
+                    id="document"
+                    type="file"
+                    accept="application/pdf"
+                    onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+                    className="mb-2"
+                  />
+                  <p className="text-xs text-gray-500">PDF only. Max 10MB.</p>
                 </div>
               </div>
             </CardContent>

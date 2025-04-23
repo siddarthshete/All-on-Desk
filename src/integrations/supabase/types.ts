@@ -9,7 +9,183 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      budget_documents: {
+        Row: {
+          amount: number
+          city_id: string | null
+          created_at: string | null
+          description: string | null
+          document_url: string | null
+          domain_id: string | null
+          id: string
+          quarter: string
+          title: string
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          amount: number
+          city_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          document_url?: string | null
+          domain_id?: string | null
+          id?: string
+          quarter: string
+          title: string
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          amount?: number
+          city_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          document_url?: string | null
+          domain_id?: string | null
+          id?: string
+          quarter?: string
+          title?: string
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_documents_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_documents_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "domains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cities: {
+        Row: {
+          id: string
+          name: string
+          state: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          state: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          state?: string
+        }
+        Relationships: []
+      }
+      domains: {
+        Row: {
+          color: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          contact: string | null
+          created_at: string | null
+          dob: string | null
+          id: string
+          location: string | null
+          name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          contact?: string | null
+          created_at?: string | null
+          dob?: string | null
+          id: string
+          location?: string | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          contact?: string | null
+          created_at?: string | null
+          dob?: string | null
+          id?: string
+          location?: string | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      queries: {
+        Row: {
+          budget_document_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          response: string | null
+          status: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          budget_document_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          response?: string | null
+          status?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          budget_document_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          response?: string | null
+          status?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "queries_budget_document_id_fkey"
+            columns: ["budget_document_id"]
+            isOneToOne: false
+            referencedRelation: "budget_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

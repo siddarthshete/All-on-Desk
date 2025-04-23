@@ -1,11 +1,21 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { BudgetDocument, City, Domain, Query, User } from "@/types";
-import { mockBudgetDocuments, mockCities, mockDomains, mockQueries, mockUsers } from "@/data/mockData";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+// Basic User from Supabase session (you can extend this as needed)
+interface SimpleUser {
+  id: string;
+  email: string | null;
+  name?: string | null;
+  role?: "admin" | "user";
+}
 
 interface AppContextProps {
-  user: User | null;
+  user: SimpleUser | null;
+  session: any;
+  setUser: (user: SimpleUser | null) => void;
   cities: City[];
   domains: Domain[];
   budgetDocuments: BudgetDocument[];
@@ -16,70 +26,156 @@ interface AppContextProps {
   logout: () => void;
   setSelectedCity: (city: City | null) => void;
   setSelectedDomain: (domain: Domain | null) => void;
-  createQuery: (query: Omit<Query, "id" | "userId" | "createdAt" | "status">) => void;
-  addBudgetDocument: (document: Omit<BudgetDocument, "id" | "createdAt" | "updatedAt">) => void;
-  updateBudgetDocument: (id: string, document: Partial<BudgetDocument>) => void;
-  deleteBudgetDocument: (id: string) => void;
-  respondToQuery: (id: string, response: string) => void;
+  createQuery: (query: Omit<Query, "id" | "userId" | "createdAt" | "status">) => Promise<void>;
+  addBudgetDocument: (document: Omit<BudgetDocument, "id" | "createdAt" | "updatedAt">, file?: File) => Promise<void>;
+  updateBudgetDocument: (id: string, document: Partial<BudgetDocument>, file?: File) => Promise<void>;
+  deleteBudgetDocument: (id: string) => Promise<void>;
+  respondToQuery: (id: string, response: string) => Promise<void>;
+  refreshAll: () => void;
 }
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [cities, setCities] = useState<City[]>(mockCities);
-  const [domains, setDomains] = useState<Domain[]>(mockDomains);
-  const [budgetDocuments, setBudgetDocuments] = useState<BudgetDocument[]>(mockBudgetDocuments);
-  const [queries, setQueries] = useState<Query[]>(mockQueries);
+  const [user, setUser] = useState<SimpleUser | null>(null);
+  const [session, setSession] = useState<any>(null);
+  const [cities, setCities] = useState<City[]>([]);
+  const [domains, setDomains] = useState<Domain[]>([]);
+  const [budgetDocuments, setBudgetDocuments] = useState<BudgetDocument[]>([]);
+  const [queries, setQueries] = useState<Query[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
   const { toast } = useToast();
 
-  // Check localStorage for user session on initial load
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Failed to parse stored user:", error);
-        localStorage.removeItem("user");
-      }
+  // Helper: Fetch all reference and content data
+  const fetchAll = async () => {
+    // Cities
+    const { data: citiesData, error: citiesError } = await supabase
+      .from("cities")
+      .select("*");
+    if (citiesError) {
+      toast({ title: "Error loading cities", description: citiesError.message, variant: "destructive" });
+    } else if (citiesData) {
+      setCities(citiesData);
     }
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    // In a real app, this would be an API call to a backend service
-    // For demo, we'll use mock data
-    const foundUser = mockUsers.find(u => u.email === email);
-    
-    if (foundUser && password === "password") {
-      setUser(foundUser);
-      localStorage.setItem("user", JSON.stringify(foundUser));
-      toast({
-        title: "Login Successful",
-        description: `Welcome back, ${foundUser.name}!`,
-      });
-    } else {
-      toast({
-        title: "Login Failed",
-        description: "Invalid email or password. For demo, use admin@allondesk.gov/password or user@example.com/password",
-        variant: "destructive",
-      });
-      throw new Error("Invalid credentials");
+    // Domains
+    const { data: domainsData, error: domainsError } = await supabase
+      .from("domains")
+      .select("*");
+    if (domainsError) {
+      toast({ title: "Error loading domains", description: domainsError.message, variant: "destructive" });
+    } else if (domainsData) {
+      setDomains(domainsData);
+    }
+    // Budget documents
+    const { data: budgetsData, error: budgetsError } = await supabase
+      .from("budget_documents")
+      .select("*");
+    if (budgetsError) {
+      toast({ title: "Error loading budget documents", description: budgetsError.message, variant: "destructive" });
+    } else if (budgetsData) {
+      setBudgetDocuments(
+        budgetsData.map((b: any) => ({
+          id: b.id,
+          title: b.title,
+          description: b.description,
+          cityId: b.city_id,
+          domainId: b.domain_id,
+          year: b.year,
+          quarter: b.quarter,
+          amount: b.amount,
+          documentUrl: b.document_url || "",
+          createdAt: b.created_at,
+          updatedAt: b.updated_at,
+        }))
+      );
+    }
+    // Queries
+    const { data: queriesData, error: queriesError } = await supabase
+      .from("queries")
+      .select("*");
+    if (queriesError) {
+      toast({ title: "Error loading queries", description: queriesError.message, variant: "destructive" });
+    } else if (queriesData) {
+      setQueries(
+        queriesData.map((q: any) => ({
+          id: q.id,
+          title: q.title,
+          description: q.description,
+          budgetDocumentId: q.budget_document_id,
+          userId: q.user_id,
+          status: (q.status as "pending" | "resolved" | "rejected") ?? "pending",
+          createdAt: q.created_at,
+          response: q.response ?? undefined,
+        }))
+      );
     }
   };
 
-  const logout = () => {
+  // Helper for fetching just docs
+  const refreshAll = () => {
+    fetchAll();
+  };
+
+  // Auth session logic
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, sessionObj) => {
+      setSession(sessionObj);
+      if (sessionObj?.user) {
+        setUser({
+          id: sessionObj.user.id,
+          email: sessionObj.user.email,
+        });
+      } else {
+        setUser(null);
+      }
+    });
+    // Initial session load
+    supabase.auth.getSession().then(({ data: { session: sessionObj } }) => {
+      setSession(sessionObj);
+      if (sessionObj?.user) {
+        setUser({
+          id: sessionObj.user.id,
+          email: sessionObj.user.email,
+        });
+      } else {
+        setUser(null);
+      }
+    });
+    fetchAll();
+    return () => {
+      listener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Login with Supabase
+  const login = async (email: string, password: string) => {
+    const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast({ title: "Login failed", description: error.message, variant: "destructive" });
+      throw new Error("Login failed: " + error.message);
+    }
+    toast({ title: "Login Successful", description: `Welcome!` });
+    setSession(data.session);
+    setUser({
+      id: data.user.id,
+      email: data.user.email,
+    });
+  };
+
+  // Logout
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem("user");
+    setSession(null);
     toast({
       title: "Logged Out",
       description: "You have been successfully logged out.",
     });
   };
 
-  const createQuery = (query: Omit<Query, "id" | "userId" | "createdAt" | "status">) => {
+  // Add Query
+  const createQuery = async (query: Omit<Query, "id" | "userId" | "createdAt" | "status">) => {
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -88,114 +184,164 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       });
       return;
     }
-
-    const newQuery: Query = {
-      id: Date.now().toString(),
-      userId: user.id,
-      createdAt: new Date().toISOString(),
+    const { error } = await supabase.from("queries").insert({
+      title: query.title,
+      description: query.description,
+      budget_document_id: query.budgetDocumentId,
+      user_id: user.id,
       status: "pending",
-      ...query,
-    };
-
-    setQueries(prev => [...prev, newQuery]);
-    toast({
-      title: "Query Submitted",
-      description: "Your query has been submitted successfully.",
     });
+    if (error) {
+      toast({ title: "Failed to submit query", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Query Submitted", description: "Your query has been submitted successfully." });
+    fetchAll();
   };
 
-  const addBudgetDocument = (document: Omit<BudgetDocument, "id" | "createdAt" | "updatedAt">) => {
-    if (!user || user.role !== "admin") {
+  // Upload file helper
+  const uploadFile = async (file: File): Promise<string | null> => {
+    const fileName = `${Date.now()}-${file.name}`;
+    const { data, error } = await supabase.storage.from("budgets").upload(fileName, file, {
+      upsert: false,
+    });
+    if (error) {
+      toast({ title: "File Upload Failed", description: error.message, variant: "destructive" });
+      return null;
+    }
+    // File accessible via public URL
+    return `https://gdzpwlcmfudewgowmzbm.supabase.co/storage/v1/object/public/budgets/${fileName}`;
+  };
+
+  // Add new budget document
+  const addBudgetDocument = async (
+    document: Omit<BudgetDocument, "id" | "createdAt" | "updatedAt">,
+    file?: File
+  ) => {
+    if (!user) {
       toast({
-        title: "Permission Denied",
-        description: "Only administrators can add budget documents.",
+        title: "Authentication Required",
+        description: "Please login.",
         variant: "destructive",
       });
       return;
     }
+    let uploadedUrl = document.documentUrl;
+    if (file) {
+      const maybeUrl = await uploadFile(file);
+      if (!maybeUrl) return;
+      uploadedUrl = maybeUrl;
+    }
+    const { error } = await supabase.from("budget_documents").insert({
+      title: document.title,
+      description: document.description,
+      city_id: document.cityId,
+      domain_id: document.domainId,
+      year: document.year,
+      quarter: document.quarter,
+      amount: document.amount,
+      document_url: uploadedUrl,
+    });
+    if (error) {
+      toast({ title: "Failed to add budget document", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Document Added", description: "The budget document has been added successfully." });
+    fetchAll();
+  };
 
-    const now = new Date().toISOString();
-    const newDocument: BudgetDocument = {
-      id: Date.now().toString(),
-      createdAt: now,
-      updatedAt: now,
+  // Edit budget document
+  const updateBudgetDocument = async (
+    id: string,
+    document: Partial<BudgetDocument>,
+    file?: File
+  ) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please login.",
+        variant: "destructive",
+      });
+      return;
+    }
+    let uploadedUrl = document.documentUrl;
+    if (file) {
+      const maybeUrl = await uploadFile(file);
+      if (!maybeUrl) return;
+      uploadedUrl = maybeUrl;
+    }
+    const fieldsToUpdate: any = {
       ...document,
+      updated_at: new Date().toISOString(),
     };
-
-    setBudgetDocuments(prev => [...prev, newDocument]);
-    toast({
-      title: "Document Added",
-      description: "The budget document has been added successfully.",
-    });
+    if (uploadedUrl !== undefined) fieldsToUpdate.document_url = uploadedUrl;
+    if (fieldsToUpdate.cityId !== undefined) {
+      fieldsToUpdate.city_id = fieldsToUpdate.cityId;
+      delete fieldsToUpdate.cityId;
+    }
+    if (fieldsToUpdate.domainId !== undefined) {
+      fieldsToUpdate.domain_id = fieldsToUpdate.domainId;
+      delete fieldsToUpdate.domainId;
+    }
+    const { error } = await supabase
+      .from("budget_documents")
+      .update(fieldsToUpdate)
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Failed to update budget document", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Document Updated", description: "The budget document has been updated successfully." });
+    fetchAll();
   };
 
-  const updateBudgetDocument = (id: string, document: Partial<BudgetDocument>) => {
-    if (!user || user.role !== "admin") {
+  // Delete budget document
+  const deleteBudgetDocument = async (id: string) => {
+    if (!user) {
       toast({
-        title: "Permission Denied",
-        description: "Only administrators can update budget documents.",
+        title: "Authentication Required",
+        description: "Please login.",
         variant: "destructive",
       });
       return;
     }
-
-    setBudgetDocuments(prev => 
-      prev.map(doc => 
-        doc.id === id 
-          ? { ...doc, ...document, updatedAt: new Date().toISOString() } 
-          : doc
-      )
-    );
-    toast({
-      title: "Document Updated",
-      description: "The budget document has been updated successfully.",
-    });
+    const { error } = await supabase.from("budget_documents").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Failed to delete budget document", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Document Deleted", description: "The budget document has been deleted successfully." });
+    fetchAll();
   };
 
-  const deleteBudgetDocument = (id: string) => {
-    if (!user || user.role !== "admin") {
+  // Respond to query (set response)
+  const respondToQuery = async (id: string, response: string) => {
+    if (!user) {
       toast({
-        title: "Permission Denied",
-        description: "Only administrators can delete budget documents.",
+        title: "Authentication Required",
+        description: "Please login.",
         variant: "destructive",
       });
       return;
     }
-
-    setBudgetDocuments(prev => prev.filter(doc => doc.id !== id));
-    toast({
-      title: "Document Deleted",
-      description: "The budget document has been deleted successfully.",
-    });
-  };
-
-  const respondToQuery = (id: string, response: string) => {
-    if (!user || user.role !== "admin") {
-      toast({
-        title: "Permission Denied",
-        description: "Only administrators can respond to queries.",
-        variant: "destructive",
-      });
+    const { error } = await supabase
+      .from("queries")
+      .update({ response, status: "resolved" })
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Failed to respond to query", description: error.message, variant: "destructive" });
       return;
     }
-
-    setQueries(prev => 
-      prev.map(query => 
-        query.id === id 
-          ? { ...query, response, status: "resolved" } 
-          : query
-      )
-    );
-    toast({
-      title: "Response Submitted",
-      description: "Your response has been submitted successfully.",
-    });
+    toast({ title: "Response Submitted", description: "Your response has been submitted successfully." });
+    fetchAll();
   };
 
   return (
     <AppContext.Provider
       value={{
         user,
+        session,
+        setUser,
         cities,
         domains,
         budgetDocuments,
@@ -211,6 +357,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         updateBudgetDocument,
         deleteBudgetDocument,
         respondToQuery,
+        refreshAll,
       }}
     >
       {children}
