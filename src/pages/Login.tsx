@@ -8,23 +8,51 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useApp } from "@/context/AppContext";
 import { Link } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const { login } = useApp();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage("");
     
     try {
-      await login(email, password);
-      navigate("/");
-    } catch (error) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        setErrorMessage(error.message);
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else if (data.user) {
+        toast({
+          title: "Login Successful",
+          description: `Welcome ${data.user.email}!`
+        });
+        navigate("/");
+      }
+    } catch (error: any) {
       console.error("Login failed:", error);
+      setErrorMessage(error.message || "Login failed, please try again.");
+      toast({
+        title: "Login Error",
+        description: error.message || "Something went wrong",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -42,6 +70,11 @@ const Login = () => {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+              {errorMessage && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
+                  {errorMessage}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -71,12 +104,6 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-              </div>
-              
-              <div className="text-sm text-gray-500">
-                For demo purposes, use:<br />
-                Admin: admin@allondesk.gov / password<br />
-                User: user@example.com / password
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">

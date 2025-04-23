@@ -119,7 +119,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // Auth session logic
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange((event, sessionObj) => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sessionObj) => {
+      console.log("Auth state change:", event, sessionObj?.user?.email);
       setSession(sessionObj);
       if (sessionObj?.user) {
         setUser({
@@ -130,8 +132,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
       }
     });
-    // Initial session load
+    
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: sessionObj } }) => {
+      console.log("Initial session check:", sessionObj?.user?.email);
       setSession(sessionObj);
       if (sessionObj?.user) {
         setUser({
@@ -142,9 +146,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
       }
     });
+    
     fetchAll();
+    
     return () => {
-      listener?.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -165,7 +171,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // Logout
   const logout = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({ title: "Logout failed", description: error.message, variant: "destructive" });
+      return;
+    }
     setUser(null);
     setSession(null);
     toast({
