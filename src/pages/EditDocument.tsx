@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -23,11 +24,12 @@ const EditDocument = () => {
   const [quarter, setQuarter] = useState("");
   const [amount, setAmount] = useState("");
   const [documentUrl, setDocumentUrl] = useState("");
-  const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Find the existing document
   const document = budgetDocuments.find(doc => doc.id === id);
   
+  // Load existing document data
   useEffect(() => {
     if (document) {
       setTitle(document.title);
@@ -41,6 +43,7 @@ const EditDocument = () => {
     }
   }, [document]);
   
+  // If document not found or user is not admin, redirect
   if (!document) {
     return (
       <Layout>
@@ -55,7 +58,7 @@ const EditDocument = () => {
     );
   }
   
-  if (!user) {
+  if (!user || user.role !== "admin") {
     return (
       <Layout>
         <div className="text-center p-12">
@@ -69,11 +72,11 @@ const EditDocument = () => {
     );
   }
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    await updateBudgetDocument(document.id, {
+    updateBudgetDocument(document.id, {
       title,
       description,
       cityId,
@@ -81,10 +84,10 @@ const EditDocument = () => {
       year: parseInt(year),
       quarter,
       amount: parseFloat(amount),
-      documentUrl: "" // will be set by file upload logic if file provided
-    }, file || undefined);
-
-    setIsSubmitting(false);
+      documentUrl,
+    });
+    
+    // Navigate back to the document page
     setTimeout(() => {
       navigate(`/documents/${document.id}`);
     }, 1000);
@@ -120,6 +123,7 @@ const EditDocument = () => {
                   required
                 />
               </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -131,6 +135,7 @@ const EditDocument = () => {
                   required
                 />
               </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
@@ -151,6 +156,7 @@ const EditDocument = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="domain">Domain</Label>
                   <Select
@@ -171,6 +177,7 @@ const EditDocument = () => {
                   </Select>
                 </div>
               </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="year">Year</Label>
@@ -184,6 +191,7 @@ const EditDocument = () => {
                     required
                   />
                 </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="quarter">Quarter</Label>
                   <Select
@@ -202,6 +210,7 @@ const EditDocument = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="amount">Budget Amount ($)</Label>
                   <Input
@@ -216,18 +225,24 @@ const EditDocument = () => {
                   />
                 </div>
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="document">Replace Budget Document</Label>
+                <Label htmlFor="document">Budget Document</Label>
                 <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center">
                   <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <input
-                    id="document"
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
-                    className="mb-2"
-                  />
-                  <p className="text-xs text-gray-500">Current: {documentUrl ? documentUrl.split('/').pop() : "None"} (PDF only)</p>
+                  <p className="text-sm text-gray-600 mb-1">Current file: {documentUrl.split('/').pop()}</p>
+                  <p className="text-xs text-gray-500">
+                    (For demo purposes, file upload is simulated)
+                  </p>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4"
+                    onClick={() => setDocumentUrl("/documents/updated.pdf")}
+                  >
+                    Replace File
+                  </Button>
                 </div>
               </div>
             </CardContent>
