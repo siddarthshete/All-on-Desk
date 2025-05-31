@@ -1,12 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useAuthContext } from "@/context/AuthContext";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -14,34 +14,45 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const { signUp, isAuthenticated, loading } = useAuthContext();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, loading, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     // Simple validation
     if (password !== confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please ensure both passwords match.",
-        variant: "destructive",
-      });
       setIsLoading(false);
       return;
     }
     
-    // Mock registration success
-    setTimeout(() => {
-      toast({
-        title: "Registration Successful",
-        description: "Your account has been created. Please log in.",
-      });
-      setIsLoading(false);
+    try {
+      await signUp(email, password, name);
       navigate("/login");
-    }, 1500);
+    } catch (error) {
+      console.error("Registration failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center py-12">
+          <div>Loading...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -98,17 +109,15 @@ const Register = () => {
                   required
                 />
               </div>
-              <div className="text-sm text-gray-500">
-                <p>
-                  This is a demo app. Registration will not create a real account.
-                </p>
-              </div>
+              {password !== confirmPassword && confirmPassword && (
+                <p className="text-sm text-red-600">Passwords don't match</p>
+              )}
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
               <Button 
                 type="submit" 
                 className="w-full bg-aod-purple-600 hover:bg-aod-purple-700"
-                disabled={isLoading}
+                disabled={isLoading || password !== confirmPassword}
               >
                 {isLoading ? "Creating Account..." : "Register"}
               </Button>

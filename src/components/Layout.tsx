@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useApp } from "@/context/AppContext";
+import { useAuthContext } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { UserCircle, LogOut, Menu } from "lucide-react";
 import CitySelector from "./CitySelector";
@@ -13,7 +13,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, logout } = useApp();
+  const { profile, signOut, isAuthenticated } = useAuthContext();
   const isMobile = useIsMobile();
 
   return (
@@ -49,16 +49,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       />
                     </div>
                     <div className="flex flex-col gap-4 items-center">
-                      {user ? (
+                      {isAuthenticated && profile ? (
                         <>
                           <Link to="/dashboard" className="flex items-center gap-2 text-white hover:text-aod-purple-200 py-2">
                             <UserCircle size={20} />
-                            <span>{user.name}</span>
+                            <span>{profile.name} {profile.role === 'admin' && '(Admin)'}</span>
                           </Link>
                           <Button 
                             variant="outline" 
                             className="w-full text-white border-white hover:text-aod-purple-200" 
-                            onClick={logout}
+                            onClick={signOut}
                           >
                             <LogOut size={20} className="mr-2" />
                             Logout
@@ -97,16 +97,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <CitySelector />
               
               {/* User menu / Auth buttons */}
-              {user ? (
+              {isAuthenticated && profile ? (
                 <div className="flex items-center gap-2">
                   <Link to="/dashboard" className="flex items-center gap-1 text-white hover:text-aod-purple-200">
                     <UserCircle size={20} />
-                    <span>{user.name}</span>
+                    <span>{profile.name} {profile.role === 'admin' && '(Admin)'}</span>
                   </Link>
                   <Button 
                     variant="ghost" 
                     className="text-white hover:text-aod-purple-200" 
-                    onClick={logout}
+                    onClick={signOut}
                   >
                     <LogOut size={20} />
                   </Button>
