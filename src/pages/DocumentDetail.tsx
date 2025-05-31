@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -11,11 +10,13 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Download, Edit, FileText, Trash } from "lucide-react";
 import QueryCard from "@/components/QueryCard";
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 const DocumentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { budgetDocuments, domains, cities, queries, user, deleteBudgetDocument } = useApp();
+  const { downloadFile } = useFileUpload();
   
   // Find the budget document, its domain, and city
   const document = budgetDocuments.find(doc => doc.id === id);
@@ -43,6 +44,13 @@ const DocumentDetail = () => {
   const handleDelete = () => {
     deleteBudgetDocument(document.id);
     navigate("/");
+  };
+
+  const handleDownload = () => {
+    if (document.documentUrl) {
+      const filename = `${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+      downloadFile(document.documentUrl, filename);
+    }
   };
 
   return (
@@ -144,12 +152,32 @@ const DocumentDetail = () => {
                       <p className="text-xs text-gray-500">
                         Updated on {formatDate(document.updatedAt)}
                       </p>
+                      {document.documentUrl && (
+                        <p className="text-xs text-green-600 mt-1">
+                          Document available for download
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <Button variant="outline" className="flex items-center gap-1">
-                    <Download size={16} />
-                    <span>Download</span>
-                  </Button>
+                  {document.documentUrl ? (
+                    <Button 
+                      variant="outline" 
+                      className="flex items-center gap-1"
+                      onClick={handleDownload}
+                    >
+                      <Download size={16} />
+                      <span>Download</span>
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      className="flex items-center gap-1"
+                      disabled
+                    >
+                      <Download size={16} />
+                      <span>No File</span>
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

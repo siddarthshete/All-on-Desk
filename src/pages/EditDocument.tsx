@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -9,12 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft, Upload, File } from "lucide-react";
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 const EditDocument = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, budgetDocuments, domains, cities, updateBudgetDocument } = useApp();
+  const { uploadFile, uploading } = useFileUpload();
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -25,6 +26,7 @@ const EditDocument = () => {
   const [amount, setAmount] = useState("");
   const [documentUrl, setDocumentUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   // Find the existing document
   const document = budgetDocuments.find(doc => doc.id === id);
@@ -72,25 +74,63 @@ const EditDocument = () => {
     );
   }
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Please select a PDF or Word document');
+        return;
+      }
+      
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB');
+        return;
+      }
+      
+      setSelectedFile(file);
+    }
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    updateBudgetDocument(document.id, {
-      title,
-      description,
-      cityId,
-      domainId,
-      year: parseInt(year),
-      quarter,
-      amount: parseFloat(amount),
-      documentUrl,
-    });
-    
-    // Navigate back to the document page
-    setTimeout(() => {
-      navigate(`/documents/${document.id}`);
-    }, 1000);
+    try {
+      let finalDocumentUrl = documentUrl;
+      
+      // Upload new file if selected
+      if (selectedFile) {
+        const uploadedUrl = await uploadFile(selectedFile);
+        if (uploadedUrl) {
+          finalDocumentUrl = uploadedUrl;
+        } else {
+          setIsSubmitting(false);
+          return; // Upload failed, don't proceed
+        }
+      }
+      
+      updateBudgetDocument(document.id, {
+        title,
+        description,
+        cityId,
+        domainId,
+        year: parseInt(year),
+        quarter,
+        amount: parseFloat(amount),
+        documentUrl: finalDocumentUrl,
+      });
+      
+      // Navigate back to the document page
+      setTimeout(() => {
+        navigate(`/documents/${document.id}`);
+      }, 1000);
+    } catch (error) {
+      console.error('Error updating document:', error);
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -228,21 +268,50 @@ const EditDocument = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="document">Budget Document</Label>
-                <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center">
-                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600 mb-1">Current file: {documentUrl.split('/').pop()}</p>
-                  <p className="text-xs text-gray-500">
-                    (For demo purposes, file upload is simulated)
-                  </p>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-4"
-                    onClick={() => setDocumentUrl("/documents/updated.pdf")}
-                  >
-                    Replace File
-                  </Button>
+                <div className="border-2 border-dashed rounded-md p-6">
+                  {selectedFile ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <File className="h-8 w-8 text-aod-purple-600 mr-3" />
+                        <div>
+                          <p className="font-medium">{selectedFile.name}</p>
+                          <p className="text-sm text-gray-500">
+                            {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSelectedFile(null)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">
+                        Current file: {documentUrl ? documentUrl.split('/').pop() : 'No file'}
+                      </p>
+                      <p className="text-xs text-gray-500 mb-4">
+                        Upload a new file to replace the current one (Max: 10MB)
+                      </p>
+                      <Input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        id="file-upload"
+                      />
+                      <Label htmlFor="file-upload">
+                        <Button type="button" variant="outline" size="sm" asChild>
+                          <span>Replace File</span>
+                        </Button>
+                      </Label>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -257,9 +326,9 @@ const EditDocument = () => {
               <Button 
                 type="submit" 
                 className="bg-aod-purple-600 hover:bg-aod-purple-700"
-                disabled={isSubmitting}
+                disabled={isSubmitting || uploading}
               >
-                {isSubmitting ? "Saving Changes..." : "Save Changes"}
+                {isSubmitting || uploading ? "Saving Changes..." : "Save Changes"}
               </Button>
             </CardFooter>
           </form>
