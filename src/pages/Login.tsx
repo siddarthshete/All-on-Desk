@@ -1,51 +1,34 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuthContext } from "@/context/AuthContext";
+import { useApp } from "@/context/AppContext";
 import { Link } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, isAuthenticated, loading } = useAuthContext();
+  const { login } = useApp();
   const navigate = useNavigate();
-
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (!loading && isAuthenticated) {
-      navigate("/dashboard");
-    }
-  }, [isAuthenticated, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      await signIn(email, password);
-      navigate("/dashboard");
+      await login(email, password);
+      navigate("/");
     } catch (error) {
       console.error("Login failed:", error);
     } finally {
       setIsLoading(false);
     }
   };
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex justify-center items-center py-12">
-          <div>Loading...</div>
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>
@@ -71,7 +54,15 @@ const Login = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link 
+                    to="/forgot-password" 
+                    className="text-xs text-aod-purple-600 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <Input
                   id="password"
                   type="password"
@@ -83,8 +74,9 @@ const Login = () => {
               </div>
               
               <div className="text-sm text-gray-500">
-                For demo purposes, create an account or use:<br />
-                Admin: admin@allondesk.gov / password
+                For demo purposes, use:<br />
+                Admin: admin@allondesk.gov / password<br />
+                User: user@example.com / password
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">

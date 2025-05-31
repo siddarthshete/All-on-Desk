@@ -1,17 +1,19 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { BudgetDocument, City, Domain, Query } from "@/types";
-import { mockBudgetDocuments, mockCities, mockDomains, mockQueries } from "@/data/mockData";
+import { BudgetDocument, City, Domain, Query, User } from "@/types";
+import { mockBudgetDocuments, mockCities, mockDomains, mockQueries, mockUsers } from "@/data/mockData";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuthContext } from "./AuthContext";
 
 interface AppContextProps {
+  user: User | null;
   cities: City[];
   domains: Domain[];
   budgetDocuments: BudgetDocument[];
   queries: Query[];
   selectedCity: City | null;
   selectedDomain: Domain | null;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
   setSelectedCity: (city: City | null) => void;
   setSelectedDomain: (domain: Domain | null) => void;
   createQuery: (query: Omit<Query, "id" | "userId" | "createdAt" | "status">) => void;
@@ -24,7 +26,7 @@ interface AppContextProps {
 const AppContext = createContext<AppContextProps | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const { user, isAdmin, isAuthenticated } = useAuthContext();
+  const [user, setUser] = useState<User | null>(null);
   const [cities, setCities] = useState<City[]>(mockCities);
   const [domains, setDomains] = useState<Domain[]>(mockDomains);
   const [budgetDocuments, setBudgetDocuments] = useState<BudgetDocument[]>(mockBudgetDocuments);
@@ -33,8 +35,52 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null);
   const { toast } = useToast();
 
+  // Check localStorage for user session on initial load
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error("Failed to parse stored user:", error);
+        localStorage.removeItem("user");
+      }
+    }
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    // In a real app, this would be an API call to a backend service
+    // For demo, we'll use mock data
+    const foundUser = mockUsers.find(u => u.email === email);
+    
+    if (foundUser && password === "password") {
+      setUser(foundUser);
+      localStorage.setItem("user", JSON.stringify(foundUser));
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${foundUser.name}!`,
+      });
+    } else {
+      toast({
+        title: "Login Failed",
+        description: "Invalid email or password. For demo, use admin@allondesk.gov/password or user@example.com/password",
+        variant: "destructive",
+      });
+      throw new Error("Invalid credentials");
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("user");
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
+    });
+  };
+
   const createQuery = (query: Omit<Query, "id" | "userId" | "createdAt" | "status">) => {
-    if (!isAuthenticated || !user) {
+    if (!user) {
       toast({
         title: "Authentication Required",
         description: "Please login to submit a query.",
@@ -59,7 +105,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addBudgetDocument = (document: Omit<BudgetDocument, "id" | "createdAt" | "updatedAt">) => {
-    if (!isAdmin) {
+    if (!user || user.role !== "admin") {
       toast({
         title: "Permission Denied",
         description: "Only administrators can add budget documents.",
@@ -84,7 +130,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateBudgetDocument = (id: string, document: Partial<BudgetDocument>) => {
-    if (!isAdmin) {
+    if (!user || user.role !== "admin") {
       toast({
         title: "Permission Denied",
         description: "Only administrators can update budget documents.",
@@ -107,7 +153,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteBudgetDocument = (id: string) => {
-    if (!isAdmin) {
+    if (!user || user.role !== "admin") {
       toast({
         title: "Permission Denied",
         description: "Only administrators can delete budget documents.",
@@ -124,7 +170,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const respondToQuery = (id: string, response: string) => {
-    if (!isAdmin) {
+    if (!user || user.role !== "admin") {
       toast({
         title: "Permission Denied",
         description: "Only administrators can respond to queries.",
@@ -149,12 +195,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AppContext.Provider
       value={{
+        user,
         cities,
         domains,
         budgetDocuments,
         queries,
         selectedCity,
         selectedDomain,
+        login,
+        logout,
         setSelectedCity,
         setSelectedDomain,
         createQuery,
