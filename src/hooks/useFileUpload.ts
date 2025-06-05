@@ -52,24 +52,38 @@ export const useFileUpload = () => {
 
   const downloadFile = async (url: string, filename: string) => {
     try {
-      // For files stored in Supabase Storage, we can directly download them
-      const response = await fetch(url);
-      const blob = await response.blob();
+      // Check if we're on a mobile device
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      // Create download link
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
+      if (isMobile) {
+        // For mobile devices, open the file in a new tab
+        // This allows the mobile browser to handle the download natively
+        window.open(url, '_blank');
+        
+        toast({
+          title: "Download Started",
+          description: "Document will open in a new tab. Use your browser's download option to save it.",
+        });
+      } else {
+        // For desktop, use the existing blob download method
+        const response = await fetch(url);
+        const blob = await response.blob();
+        
+        // Create download link
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
 
-      toast({
-        title: "Download Started",
-        description: "Document download has started.",
-      });
+        toast({
+          title: "Download Started",
+          description: "Document download has started.",
+        });
+      }
     } catch (error) {
       console.error('Download error:', error);
       toast({
