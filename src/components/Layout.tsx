@@ -1,6 +1,6 @@
 
 import React from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
 import { UserCircle, LogOut, Menu } from "lucide-react";
 import CitySelector from "./CitySelector";
@@ -13,24 +13,8 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, logout } = useApp();
   const isMobile = useIsMobile();
-
-  // Show loading state while authentication is being resolved
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-aod-purple-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-aod-purple-600 mx-auto mb-4"></div>
-          <p className="text-aod-purple-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const handleLogout = async () => {
-    await signOut();
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-aod-purple-50">
@@ -48,7 +32,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           
           {isMobile ? (
             <div className="flex items-center gap-2">
-              {user && <CitySelector />}
+              <CitySelector />
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="text-white">
@@ -65,16 +49,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       />
                     </div>
                     <div className="flex flex-col gap-4 items-center">
-                      {user && profile ? (
+                      {user ? (
                         <>
                           <Link to="/dashboard" className="flex items-center gap-2 text-white hover:text-aod-purple-200 py-2">
                             <UserCircle size={20} />
-                            <span>{profile.name} ({profile.role})</span>
+                            <span>{user.name}</span>
                           </Link>
                           <Button 
                             variant="outline" 
                             className="w-full text-white border-white hover:text-aod-purple-200" 
-                            onClick={handleLogout}
+                            onClick={logout}
                           >
                             <LogOut size={20} className="mr-2" />
                             Logout
@@ -109,20 +93,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           ) : (
             <div className="flex items-center gap-4">
-              {/* City Selector - only show if user is logged in */}
-              {user && <CitySelector />}
+              {/* City Selector */}
+              <CitySelector />
               
               {/* User menu / Auth buttons */}
-              {user && profile ? (
+              {user ? (
                 <div className="flex items-center gap-2">
                   <Link to="/dashboard" className="flex items-center gap-1 text-white hover:text-aod-purple-200">
                     <UserCircle size={20} />
-                    <span>{profile.name} ({profile.role})</span>
+                    <span>{user.name}</span>
                   </Link>
                   <Button 
                     variant="ghost" 
                     className="text-white hover:text-aod-purple-200" 
-                    onClick={handleLogout}
+                    onClick={logout}
                   >
                     <LogOut size={20} />
                   </Button>

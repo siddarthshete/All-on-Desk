@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/use-toast";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -14,37 +14,33 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { signUp, user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Redirect if already logged in
-  React.useEffect(() => {
-    if (user) {
-      navigate("/");
-    }
-  }, [user, navigate]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     // Simple validation
     if (password !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please ensure both passwords match.",
+        variant: "destructive",
+      });
       setIsLoading(false);
       return;
     }
     
-    try {
-      const { error } = await signUp(email, password, name);
-      if (!error) {
-        // Stay on register page to show success message
-        // User will be redirected after email confirmation
-      }
-    } catch (error) {
-      console.error("Registration failed:", error);
-    } finally {
+    // Mock registration success
+    setTimeout(() => {
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created. Please log in.",
+      });
       setIsLoading(false);
-    }
+      navigate("/login");
+    }, 1500);
   };
 
   return (
@@ -104,7 +100,7 @@ const Register = () => {
               </div>
               <div className="text-sm text-gray-500">
                 <p>
-                  Use admin@allondesk.gov to get admin privileges.
+                  This is a demo app. Registration will not create a real account.
                 </p>
               </div>
             </CardContent>
