@@ -6,23 +6,32 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useApp();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  React.useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      await login(email, password);
-      navigate("/");
+      const { error } = await signIn(email, password);
+      if (!error) {
+        navigate("/");
+      }
     } catch (error) {
       console.error("Login failed:", error);
     } finally {
@@ -56,12 +65,6 @@ const Login = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link 
-                    to="/forgot-password" 
-                    className="text-xs text-aod-purple-600 hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
                 </div>
                 <Input
                   id="password"
@@ -74,9 +77,8 @@ const Login = () => {
               </div>
               
               <div className="text-sm text-gray-500">
-                For demo purposes, use:<br />
-                Admin: admin@allondesk.gov / password<br />
-                User: user@example.com / password
+                For demo purposes, you can register with any email or use:<br />
+                Admin: admin@allondesk.gov / any password
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
