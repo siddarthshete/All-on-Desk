@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Layout from "@/components/Layout";
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/hooks/useAuth";
 import DomainSelector from "@/components/DomainSelector";
 import BudgetCard from "@/components/BudgetCard";
 import { Button } from "@/components/ui/button";
@@ -10,9 +11,11 @@ import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Slider } from "@/components/ui/slider";
 import { Domain } from "@/types";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const { budgetDocuments, domains, selectedCity, selectedDomain, setSelectedDomain } = useApp();
+  const { user, profile } = useAuth();
   const [searchTerm, setSearchTerm] = React.useState("");
   const isMobile = useIsMobile();
   const sliderRef = useRef<HTMLDivElement>(null);
@@ -56,6 +59,43 @@ const Index = () => {
     setSelectedDomain(domain);
   };
 
+  // Show login prompt if user is not authenticated
+  if (!user || !profile) {
+    return (
+      <Layout>
+        <section className="mb-8 mt-4">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-aod-purple-800 to-aod-purple-500 bg-clip-text text-transparent">
+              Government Budget Transparency
+            </h1>
+            <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto mb-8">
+              Explore government contract budgets across various domains and raise queries for clarification.
+            </p>
+            
+            <div className="bg-aod-purple-100 border border-aod-purple-200 rounded-lg p-8 max-w-md mx-auto">
+              <h3 className="text-xl font-semibold text-aod-purple-800 mb-4">Authentication Required</h3>
+              <p className="text-gray-600 mb-6">
+                Please log in to access budget documents and submit queries.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link to="/login">
+                  <Button className="w-full sm:w-auto bg-aod-purple-600 hover:bg-aod-purple-700">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button variant="outline" className="w-full sm:w-auto border-aod-purple-600 text-aod-purple-600 hover:bg-aod-purple-50">
+                    Register
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <section className="mb-8 mt-4">
@@ -66,6 +106,11 @@ const Index = () => {
           <p className="text-base md:text-lg text-gray-600 max-w-3xl mx-auto">
             Explore government contract budgets across various domains and raise queries for clarification.
           </p>
+          {profile && (
+            <p className="text-sm text-aod-purple-600 mt-2">
+              Welcome back, {profile.name}! ({profile.role})
+            </p>
+          )}
         </div>
 
         {/* Search and filters */}
