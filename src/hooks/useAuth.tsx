@@ -32,58 +32,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const createProfile = async (user: User) => {
-    console.log('Creating profile for user:', user.id);
-    try {
-      const profileData = {
-        id: user.id,
-        email: user.email,
-        name: user.user_metadata?.name || user.email,
-        role: user.email === 'admin@allondesk.gov' ? 'admin' as const : 'user' as const
-      };
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .upsert(profileData, { 
-          onConflict: 'id',
-          ignoreDuplicates: false 
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating/updating profile:', error);
-        return null;
-      }
-
-      console.log('Profile created/updated successfully:', data);
-      return data;
-    } catch (error) {
-      console.error('Profile creation error:', error);
-      return null;
-    }
-  };
-
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, retries = 3) => {
     try {
       console.log('Fetching profile for user:', userId);
+      
+      // Wait a bit for the trigger to complete if this is a retry
+      if (retries < 3) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error('Error fetching profile:', error);
-        // If profile doesn't exist, try to create it
-        if (error.code === 'PGRST116') {
-          console.log('Profile not found, attempting to create...');
-          const currentUser = (await supabase.auth.getUser()).data.user;
-          if (currentUser) {
-            return await createProfile(currentUser);
-          }
-        }
         return null;
+      }
+
+      if (!profileData && retries > 0) {
+        console.log('Profile not found, retrying...', retries);
+        return fetchProfile(userId, retries - 1);
       }
 
       console.log('Profile fetched successfully:', profileData);
@@ -153,8 +124,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           variant: "destructive",
         });
       } else if (data.user) {
-        // Create profile immediately after signup
-        await createProfile(data.user);
         toast({
           title: "Account Created",
           description: "Your account has been created successfully. You can now log in.",
